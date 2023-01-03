@@ -1,0 +1,34 @@
+// Import the express in typescript file
+import express, { Application, Request, Response } from 'express';
+import { Renderer } from './renderer';
+import { createWriteStream } from 'fs';
+
+// Initialize the express engine
+const app: Application = express();
+
+// Take a port 3000 for running server.
+const port: number = 3000;
+
+// Handling '/' Request
+app.get('/', async (req: Request, res: Response) => {
+	const renderer = new Renderer(res);
+
+	await renderer.htmlTemplate(async () => {
+		await renderer.renderUserFeed('annoyance');
+	});
+
+	res.end();
+});
+
+// Server setup
+app.listen(port, () => {
+	console.log(`Running on port ${port}`);
+});
+
+async function fileTest() {
+	const renderer = new Renderer(createWriteStream('test.html'));
+
+	await renderer.htmlTemplate(async () => {
+		await renderer.renderUserFeed('annoyance');
+	});
+}

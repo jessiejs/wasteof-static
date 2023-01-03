@@ -1,0 +1,15 @@
+body {
+	padding: 50px;
+	background: black;
+	color: white;
+	font-family: 'Satoshi';
+}
+* {
+	box-sizing: border-box;
+}
+body > *:first-child {
+	margin-top: 0;
+}
+body > *:first-child {
+	margin-bottom: 0;
+}
