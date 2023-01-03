@@ -2,8 +2,11 @@ import { Stream, Writable } from 'stream';
 import fetch from 'node-fetch';
 import { readFile } from 'fs/promises';
 import { join } from 'path';
+import { Post } from './data/post';
+import { Comment } from './data/comment';
+import { Feed } from './data/feed';
 import bufferToDataUrl from "buffer-to-data-url"
-import { parse, Node, NodeType, TextNode, HTMLElement } from 'node-html-parser';
+import { AssetLoading } from './data/requests';
 
 class Renderer {
 	output: Writable;
@@ -13,6 +16,8 @@ class Renderer {
 
 	importedStyles: string[] = [];
 	importedScripts: string[] = [];
+
+	htmlReplacements: Record<string,string> = {};
 
 	includeBundlesImmediately: boolean = true;
 
@@ -58,19 +63,6 @@ class Renderer {
 		return output;
 	}
 
-	async reconstructNode(node:Node) {
-		if (node instanceof HTMLElement) {
-			if (node.tagName == 'img') {
-				if (node.attrs['src']) {
-					node.attrs.src = await bufferToDataUrl('application/octet-stream',Buffer.from(await AssetLoading.loadWebResource(node.attrs.src)));
-				}
-			}
-		}
-		for (const subNode of node.childNodes) {
-			await this.reconstructNode(subNode);
-		}
-	}
-
 	async htmlTemplate(callback: () => Promise<void>) {
 		await this.write('<!DOCTYPE html><html><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>wasteof.static</title><body>');
 		await this.includeStyleBundle('page');
@@ -86,32 +78,17 @@ class Renderer {
 	}
 
 	async renderUserFeed(username: string) {
-		const posts = (
-			JSON.parse(
-				await AssetLoading.loadWebResource(
-					'https://api.wasteof.money/users/' +
-						username +
-						'/following/posts',
-					true
-				)
-			) as {
-				posts: Post[];
-			}
-		).posts;
-
 		await this.element('h1', {}, async () => {
 			await this.write('feed');
 		});
 
-		for (const post of posts) {
-			await this.renderPost(post);
-		}
-	}
+		const feed = new Feed();
+		await feed.init('annoyance');
+		const posts = feed.posts;
 
-	async convertHTML(html:string) {
-		const realHTML = parse(html);
-		await this.reconstructNode(realHTML);
-		return realHTML.toString();
+		for (const post of posts) {
+			await this.renderPost(await post);
+		}
 	}
 
 	async renderPost(post: Post) {
@@ -125,9 +102,9 @@ class Renderer {
 				await this.element('h3', {}, async () => {
 					await this.write(post.poster.name);
 				});
-				await this.write(await this.convertHTML(post.content));
+				await this.write(await post.content);
 				if (post.repost) {
-					await this.renderPost(post.repost);
+					await this.renderPost(await post.repost);
 				}
 				if (post.revisions.length > 1) {
 					await this.element('p', {}, async () => {
@@ -144,7 +121,7 @@ class Renderer {
 						await this.write(`🔃 ${post.reposts}`);
 					});
 					await this.element('button', {}, async () => {
-						await this.write(`💬 ${post.comments}`);
+						await this.write(`💬 ${post.commentCount}`);
 					});
 				});
 				await this.renderPostComments(post);
@@ -153,39 +130,24 @@ class Renderer {
 	}
 
 	async renderPostComments(post: Post) {
-		const comments = JSON.parse(
-			await AssetLoading.loadWebResource(
-				'https://api.wasteof.money/posts/' +
-					post._id +
-					'/comments?page=1'
-			)
-		) as {
-			comments: Comment[];
-		};
+		const comments = post.comments;
 
-		if (comments.comments.length > 0) {
+		if (comments.length > 0) {
 			await this.element('h3', {}, async () => {
 				await this.write('Comments');
 			});
 		}
 
-		for (const comment of comments.comments) {
-			await this.renderComment(comment);
+		for (let i = 0; i < comments.length; i++) {
+			await this.renderComment(await comments[i]);
 		}
 	}
 
 	async renderCommentReplies(comment: Comment) {
-		const replies = JSON.parse(
-			await AssetLoading.loadWebResource(
-				'https://api.wasteof.money/comments/' +
-					comment._id +
-					'/replies?page=1'
-			)
-		) as {
-			comments: Comment[];
-		};
-		for (const comment of replies.comments) {
-			await this.renderComment(comment);
+		const replies = comment.replies;
+
+		for (const comment of replies) {
+			await this.renderComment(await comment);
 		}
 	}
 
@@ -199,7 +161,7 @@ class Renderer {
 				await this.element('h3', {}, async () => {
 					await this.write(comment.poster.name);
 				});
-				await this.write(await this.convertHTML(comment.content));
+				await this.write(comment.content);
 				await this.renderCommentReplies(comment);
 			}
 		);
@@ -305,65 +267,5 @@ class Renderer {
 		await this.write('") format("truetype") }');
 	}
 }
-
-class AssetLoading {
-	static fileCache: Record<string, string> = {};
-	static webResources: Record<string, string> = {};
-
-	static async loadFile(path: string, burnCache?: boolean): Promise<string> {
-		if (burnCache === true) {
-			delete this.fileCache[path];
-		}
-		if (this.fileCache[path]) {
-			return this.fileCache[path];
-		}
-		console.log("file not cached, loading: " + path);
-		this.fileCache[path] = (await readFile(path)).toString();
-		return this.fileCache[path];
-	}
-
-	static async loadWebResource(path: string, burnCache?: boolean) {
-		if (burnCache === true) {
-			delete this.webResources[path];
-		}
-		if (this.webResources[path]) {
-			return this.webResources[path];
-		}
-		console.log("page not cached, loading: " + path);
-		this.webResources[path] = await (await fetch(path)).text();
-		return this.webResources[path];
-	}
-}
-
-type Post = {
-	_id: string;
-	poster: Poster;
-	content: string;
-	repost?: Post;
-	time: number;
-	revisions: {
-		content: string;
-		time: number;
-		current: boolean;
-	}[];
-	comments: number;
-	loves: number;
-	reposts: number;
-};
-
-type Poster = {
-	name: string;
-	id: string;
-};
-
-type Comment = {
-	_id: string;
-	post: string;
-	poster: Poster;
-	parent: any;
-	content: string;
-	time: number;
-	hasReplies: boolean;
-};
 
 export { Renderer };
