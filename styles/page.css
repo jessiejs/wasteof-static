@@ -10,6 +10,6 @@ body {
 body > *:first-child {
 	margin-top: 0;
 }
-body > *:first-child {
+body > *:last-child {
 	margin-bottom: 0;
 }

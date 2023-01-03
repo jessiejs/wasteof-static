@@ -6,9 +6,9 @@ class AssetLoading {
 	static webResources: Record<string, string> = {};
 
 	static async loadFile(path: string, burnCache?: boolean): Promise<string> {
-		if (burnCache === true) {
+		//if (burnCache === true) {
 			delete this.fileCache[path];
-		}
+		//}
 		if (this.fileCache[path]) {
 			return this.fileCache[path];
 		}
@@ -18,9 +18,9 @@ class AssetLoading {
 	}
 
 	static async loadWebResource(path: string, burnCache?: boolean) {
-		if (burnCache === true) {
+		//if (burnCache === true) {
 			delete this.webResources[path];
-		}
+		//}
 		if (this.webResources[path]) {
 			return this.webResources[path];
 		}
