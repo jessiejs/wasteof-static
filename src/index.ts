@@ -9,12 +9,23 @@ const app: Application = express();
 // Take a port 3000 for running server.
 const port: number = 3000;
 
-// Handling '/' Request
+// Handling feed
 app.get('/', async (req: Request, res: Response) => {
 	const renderer = new Renderer(res);
 
 	await renderer.htmlTemplate(async () => {
-		await renderer.renderUserFeed('annoyance');
+		await renderer.renderFeedOfUser('annoyance');
+	});
+
+	res.end();
+});
+
+// Handling user
+app.get('/users/:username', async (req: Request, res: Response) => {
+	const renderer = new Renderer(res);
+
+	await renderer.htmlTemplate(async () => {
+		await renderer.renderFeedOfUser(req.params.username);
 	});
 
 	res.end();

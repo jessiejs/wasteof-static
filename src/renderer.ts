@@ -5,6 +5,7 @@ import { join } from 'path';
 import { Post } from './data/post';
 import { Comment } from './data/comment';
 import { Feed } from './data/feed';
+import { UserFeed } from './data/userFeed';
 import bufferToDataUrl from "buffer-to-data-url"
 import { AssetLoading } from './data/requests';
 
@@ -79,15 +80,42 @@ class Renderer {
 
 	async renderUserFeed(username: string) {
 		await this.element('h1', {}, async () => {
+			await this.write('@' + username);
+		});
+
+		const feed = new UserFeed();
+		await feed.init(username);
+		const posts = feed.posts;
+		const pinned = feed.pinned;
+
+		if (pinned.length > 0) {
+			await this.element('h2', {}, async () => {
+				await this.write('Pinned');
+			});
+			for (const post of pinned) {
+				await this.renderPostContainer(await post);
+			}
+			await this.element('h2', {}, async () => {
+				await this.write('Not Pinned');
+			});
+		}
+
+		for (const post of posts) {
+			await this.renderPostContainer(await post);
+		}
+	}
+
+	async renderFeedOfUser(username: string) {
+		await this.element('h1', {}, async () => {
 			await this.write('feed');
 		});
 
 		const feed = new Feed();
-		await feed.init('annoyance');
+		await feed.init(username);
 		const posts = feed.posts;
 
 		for (const post of posts) {
-			await this.renderPost(await post);
+			await this.renderPostContainer(await post);
 		}
 	}
 
@@ -124,9 +152,23 @@ class Renderer {
 						await this.write(`💬 ${post.commentCount}`);
 					});
 				});
-				await this.renderPostComments(post);
 			}
 		);
+	}
+
+	async renderPostContainer(post: Post) {
+		await this.element('div', {
+			class:'splitView'
+		}, async () => {
+			await this.renderPost(post);
+			if (post.commentCount > 0) {
+				await this.element('div', {
+					class:'post'
+				}, async () => {
+					await this.renderPostComments(post);
+				});
+			}
+		});
 	}
 
 	async renderPostComments(post: Post) {
@@ -144,11 +186,16 @@ class Renderer {
 	}
 
 	async renderCommentReplies(comment: Comment) {
-		const replies = comment.replies;
+		await this.includeStyleBundle('reply');
+		await this.element('div',{
+			class:'replies'
+		},async () => {
+			const replies = comment.replies;
 
-		for (const comment of replies) {
-			await this.renderComment(await comment);
-		}
+			for (const comment of replies) {
+				await this.renderComment(await comment);
+			}
+		});
 	}
 
 	async renderComment(comment: Comment) {
@@ -162,9 +209,9 @@ class Renderer {
 					await this.write(comment.poster.name);
 				});
 				await this.write(comment.content);
-				await this.renderCommentReplies(comment);
 			}
 		);
+		await this.renderCommentReplies(comment);
 	}
 
 	async element(
