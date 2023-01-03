@@ -25,7 +25,7 @@ app.get('/users/:username', async (req: Request, res: Response) => {
 	const renderer = new Renderer(res);
 
 	await renderer.htmlTemplate(async () => {
-		await renderer.renderFeedOfUser(req.params.username);
+		await renderer.renderUserFeed(req.params.username);
 	});
 
 	res.end();

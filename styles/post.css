@@ -5,7 +5,13 @@
 	background: #ffffff22;
 	margin-bottom: 20px;
 }
-.post > *:first-child {
+.post > a:first-of-type {
+	margin-top: 0;
+}
+.post > a:first-of-type > h3:first-child {
+	margin-top: 0;
+}
+.post > h3:first-of-type {
 	margin-top: 0;
 }
 .post > *:last-child {

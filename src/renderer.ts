@@ -127,8 +127,14 @@ class Renderer {
 				class: 'post',
 			},
 			async () => {
-				await this.element('h3', {}, async () => {
-					await this.write(post.poster.name);
+				await this.includeStyleBundle('secretLink');
+				await this.element('a', {
+					href:'/users/' + post.poster.name,
+					class:'secretLink'
+				}, async () => {
+					await this.element('h3', {}, async () => {
+						await this.write(post.poster.name);
+					});
 				});
 				await this.write(await post.content);
 				if (post.repost) {
@@ -205,8 +211,13 @@ class Renderer {
 				class: 'post',
 			},
 			async () => {
-				await this.element('h3', {}, async () => {
-					await this.write(comment.poster.name);
+				await this.element('a', {
+					href:'/users/' + comment.poster.name,
+					class:'secretLink'
+				}, async () => {
+					await this.element('h3', {}, async () => {
+						await this.write(comment.poster.name);
+					});
 				});
 				await this.write(comment.content);
 			}
