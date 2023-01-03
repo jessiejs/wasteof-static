@@ -14,7 +14,7 @@ app.get('/', async (req: Request, res: Response) => {
 	const renderer = new Renderer(res);
 
 	await renderer.htmlTemplate(async () => {
-		await renderer.renderFeedOfUser('annoyance');
+		await renderer.renderFeedOfUser('thenextannoyance');
 	});
 
 	res.end();
@@ -35,11 +35,3 @@ app.get('/users/:username', async (req: Request, res: Response) => {
 app.listen(port, () => {
 	console.log(`Running on port ${port}`);
 });
-
-async function fileTest() {
-	const renderer = new Renderer(createWriteStream('test.html'));
-
-	await renderer.htmlTemplate(async () => {
-		await renderer.renderUserFeed('annoyance');
-	});
-}
