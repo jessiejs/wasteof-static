@@ -25,7 +25,9 @@ class AssetLoading {
 			return this.webResources[path];
 		}
 		console.log("page not cached, loading: " + path);
-		this.webResources[path] = await (await fetch(path)).text();
+		const data = await (await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(path)}`)).text();
+		//console.log(data);
+		this.webResources[path] = JSON.parse(data).content;
 		return this.webResources[path];
 	}
 }

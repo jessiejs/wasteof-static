@@ -8,6 +8,12 @@ class Feed {
 	}
 
 	async init(username:string) {
+		console.log(await AssetLoading.loadWebResource(
+			'https://api.wasteof.money/users/' +
+				username +
+				'/following/posts',
+			true
+		));
 		const posts = (
 			JSON.parse(
 				await AssetLoading.loadWebResource(
@@ -19,9 +25,9 @@ class Feed {
 			) as {
 				posts: PostData[];
 			}
-		).posts;
+		);
 
-		for (const postData of posts) {
+		for (const postData of posts.posts) {
 			this.posts.push(createPost(postData));
 		}
 	}
